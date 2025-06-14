@@ -1,9 +1,8 @@
 {
-  "data": {
-    "input_path": "dataset/X_lstm.npy",
-    "label_path": "dataset/y_lstm.npy",
-    "split_seed": 42
+  "general": {
+    "seeds": [42, 2023, 7, 99, 1234]
   },
+
   "model": {
     "batch_size": 64,
     "epochs": 200,
@@ -29,7 +28,6 @@
     "window": 8,
     "take_profit_pips": 20,
     "max_dd_pips": 7,
-    "stop_loss_pips": 5,
     "sequence_length": 30,
     "output_dataset_path": "../dataset/eurusd_1h.csv",
     "output_X_path": "../dataset/X_lstm.npy",

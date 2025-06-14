@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 import joblib
 import plotly.graph_objects as go
-from model.core import LSTMClassifier
+from exogenous_model.model.core import LSTMClassifier
 
 import plotly.io as pio
 pio.renderers.default = "browser"
@@ -11,9 +11,9 @@ pio.renderers.default = "browser"
 # === CONFIG === #
 MODEL_PATH = '../model/checkpoints/lstm_model.pt'
 SCALER_PATH = '../model/checkpoints/scaler.pkl'
-X_PATH = '../dataset/X_lstm.npy'
-Y_PATH = '../dataset/y_lstm.npy'
-PRICE_PATH = '../dataset/eurusd_1h.csv'  # pour récupérer les prix d'origine
+X_PATH = '../dataset/features_and_target/X_lstm.npy'
+Y_PATH = '../dataset/features_and_target/y_lstm.npy'
+PRICE_PATH = '../dataset/primary_source/eurusd_1h.csv'  # pour récupérer les prix d'origine
 BATCH_SIZE = 64
 
 # === Dataset custom === #
@@ -40,7 +40,7 @@ N, T, F = X.shape
 X_flat = X.reshape(-1, F)
 X_scaled = scaler.transform(X_flat).reshape(N, T, F)
 
-# Découpe train/test
+# Découpe train_and_test/test
 test_size = int(0.2 * len(X_scaled))
 X_test = X_scaled[-test_size:]
 y_test = y[-test_size:]

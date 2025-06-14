@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import os
@@ -5,7 +6,7 @@ import os
 
 def run_backtest(
     y_pred_path: str,
-    close_prices_path: str = "../model/dataset/close_prices.npy",
+    close_prices_path: str = "../exogenous_model/dataset/close_prices.npy",
     capital: float = 10000.0,
     transaction_fee: float = 0.001,  # 0.1% par trade (entrée + sortie)
     risk_free_rate: float = 0.0,     # Pour le Sharpe ratio
@@ -98,3 +99,7 @@ def extract_seed_from_path(path: str) -> str:
     if "seed_" in base:
         return base.split("seed_")[-1].split(".")[0]
     return "unknown"
+
+
+
+print()

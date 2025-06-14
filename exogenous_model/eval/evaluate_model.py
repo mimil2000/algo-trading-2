@@ -1,10 +1,10 @@
-# model/eval/evaluate_model.py
+# exogenous_model/eval/evaluate_model.py
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from model.core import LSTMClassifier
+from exogenous_model.model.core import LSTMClassifier
 
 BATCH_SIZE = 64
 

@@ -1,5 +1,5 @@
-# model/train/train_model.py
-
+# exogenous_model/train_and_test/train_model.py
+import json
 import os
 import numpy as np
 import torch
@@ -9,12 +9,16 @@ import joblib
 from torch.utils.data import DataLoader, Dataset, random_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.class_weight import compute_class_weight
-from model.core import LSTMClassifier
+from exogenous_model.model.core import LSTMClassifier
 
-BATCH_SIZE = 64
-EPOCHS = 200
-LR = 0.001
-PATIENCE = 10
+# === CONFIGURATION === #
+with open('C:\\Donnees\\ECL\\11-S9\\Deep Learning\\algo-trading-2\\config.json') as f:
+    config = json.load(f)
+
+BATCH_SIZE = config['model']["batch_size"]
+EPOCHS = config['model']["batch_size"]
+LR = config['model']["batch_size"]
+PATIENCE = config['model']["batch_size"]
 
 class ForexLSTMDataset(Dataset):
     def __init__(self, X, y):
