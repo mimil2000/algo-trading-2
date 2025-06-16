@@ -1,4 +1,6 @@
 import json
+import os
+
 import torch
 import numpy as np
 from torch.utils.data import TensorDataset, DataLoader
@@ -6,8 +8,11 @@ from torch.utils.data import TensorDataset, DataLoader
 
 def predict_exo_model(model, X, device):
 
-    # === CONFIGURATION === #
-    with open('/config.json') as f:
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+    config_path = os.path.join(project_root, 'config.json')
+
+    with open(config_path) as f:
         config = json.load(f)
 
     BATCH_SIZE = config['model']["batch_size"]

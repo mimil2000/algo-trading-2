@@ -1,4 +1,6 @@
 """generate_dataset.py"""
+import os
+
 import pandas as pd
 import numpy as np
 import kagglehub
@@ -33,6 +35,18 @@ def enrich_with_vix(eurusd_df):
 def set_time_as_index(df):
     df['time'] = pd.to_datetime(df['time'])
     return df.set_index('time')
+
+
+def remove_highly_correlated_features(df, threshold=0.95, logger=None):
+    corr_matrix = df.corr().abs()
+    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+
+    to_drop = [column for column in upper.columns if any(upper[column] > threshold)]
+
+    if logger:
+        logger.info(f"Colonnes supprimées à cause d'une corrélation > {threshold} : {to_drop}")
+
+    return df.drop(columns=to_drop), to_drop
 
 
 def clean_dataset_robust(df: pd.DataFrame) -> pd.DataFrame:
@@ -90,12 +104,13 @@ def generate_label_with_dd(df, tp_pips, window, max_dd_pips):
     labels += [0] * window
     return labels
 
-def generate_exogenous_dataset(seed):
+def generate_exogenous_dataset(logger):
 
-    seed.set(seed)
 
-    # === CONFIGURATION === #
-    with open('/config.json') as f:
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    config_path = os.path.join(project_root, 'config.json')
+
+    with open(config_path, "r") as f:
         config = json.load(f)
 
     TAKE_PROFIT_PIPS = config['dataset']["take_profit_pips"]
@@ -104,7 +119,7 @@ def generate_exogenous_dataset(seed):
     SEQUENCE_LENGTH = config['dataset']["sequence_length"]
 
     # === TÉLÉCHARGEMENT DES DONNÉES === #
-    print("Téléchargement des données...")
+    logger.info("Téléchargement des données...")
     path = kagglehub.dataset_download("orkunaktas/eurusd-1h-2020-2024-september-forex")
     csv_path = path + '/EURUSD_1H_2020-2024.csv'
 
@@ -116,7 +131,7 @@ def generate_exogenous_dataset(seed):
     df = df.drop(columns='real_volume')
 
     # === INDICATEURS TECHNIQUES === #
-    print("Calcul des indicateurs techniques...")
+    logger.info("Calcul des indicateurs techniques...")
     df = set_time_as_index(df)
 
     # returns
@@ -186,16 +201,16 @@ def generate_exogenous_dataset(seed):
 
     # === NETTOYAGE ROBUSTE === #
     # df = clean_dataset_robust(df)
-    print(f"Lignes avant nettoyage : {len(df)}")
+    logger.info(f"Lignes avant nettoyage : {len(df)}")
     df = df.dropna()
-    print(f"Lignes après nettoyage : {len(df)}")
+    logger.info(f"Lignes après nettoyage : {len(df)}")
 
     # === LABELING === #
-    print("Création des labels...")
+    logger.info("Création des labels...")
     df['label'] = generate_label_with_dd(df, TAKE_PROFIT_PIPS, PREDICTION_WINDOW, MAX_DD_PIPS)
 
     # === SÉLECTION FINALE === #
-    print("Sélection des colonnes...")
+    logger.info("Sélection des colonnes...")
 
     features = [
         'log_return',
@@ -211,27 +226,30 @@ def generate_exogenous_dataset(seed):
         'autocorr_return_1', 'autocorr_return_5', 'autocorr_price_5'
     ]
 
-    df_final = df[features + ['label']].copy()
+    df_final, dropped_features = remove_highly_correlated_features(df[features + ['label']], threshold=0.95, logger=logger)
 
     # === EXPORT CSV === #
-    df_final.to_csv(config['dataset']["output_dataset_path"], index=False)
-    print(f"✅ Dataset sauvegardé sous {config['dataset']['output_dataset_path']}")
+    csv_output_path = os.path.join(project_root, config['dataset']["output_dataset_path"])
+    df_final.to_csv(csv_output_path, index=False)
+    logger.info(f"Dataset sauvegardé sous {csv_output_path}")
 
     # === CONSTRUCTION DES SÉQUENCES === #
     sequence_data = []
     sequence_labels = []
 
+    feature_columns = df_final.columns.drop('label')  # noms des features
+
     for i in range(SEQUENCE_LENGTH, len(df_final)):
-        seq = df_final.iloc[i - SEQUENCE_LENGTH:i]
+        seq = df_final.iloc[i - SEQUENCE_LENGTH:i][feature_columns]
         label = df_final.iloc[i]['label']
-        sequence_data.append(seq.drop(columns=['label']).values)
+        sequence_data.append(seq.values)
         sequence_labels.append(label)
 
     X = np.array(sequence_data)
     y = np.array(sequence_labels)
 
-    np.save(config['dataset']["output_X_path"], X)
-    np.save(config['dataset']["output_y_path"], y)
+    # === SAUVEGARDE EN FORMAT npz AVEC NOMS DE COLONNES === #
+    npz_output_path = os.path.join(project_root, config['dataset']["output_Xy_npz_path"])
+    np.savez_compressed(npz_output_path, X=X, y=y, columns=feature_columns.to_list())
 
-    print(
-        f"✅ Dataset séquentiel sauvegardé sous {config['dataset']['output_X_path']} et {config['dataset']['output_y_path']}")
+    logger.info(f"Dataset séquentiel sauvegardé sous {npz_output_path} avec noms de colonnes")

@@ -1,33 +1,31 @@
 """generate_meta_datasets.py"""
 import json
+import os
 
 import torch
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from exogenous_model.model.core import LSTMClassifier
 from exogenous_model.prediction.prediction import predict_exo_model
 
 
-def process_seed(seed, device, base_dir, model_dir, output_dir):
+def process_seed(seed, device, base_dir, model_dir, output_path, logger):
 
-    print(f"\n[•] Traitement du seed {seed}...")
+    logger.info(f" Traitement du seed {seed}...")
 
-    base_path = base_dir / f'seed_{seed}'
-    model_path = model_dir / f'model_seed_{seed}.pt'
-    output_path = output_dir
-    output_path.mkdir(parents=True, exist_ok=True)
+    base_path = os.path.join(base_dir ,f'seed_{seed}')
+    model_path =  os.path.join(model_dir , f'model_seed_{seed}.pt')
 
-    y_train = np.load(base_path / 'y_train.npy')
-    y_val = np.load(base_path / 'y_val.npy')
-    y_test = np.load(base_path / 'y_test.npy')
+    y_train = np.load(os.path.join(base_path, 'y_train.npy'))
+    y_val = np.load(os.path.join(base_path, 'y_val.npy'))
+    y_test = np.load(os.path.join(base_path, 'y_test.npy'))
 
-    X_train = np.load(base_path / 'X_train.npy')
-    X_val = np.load(base_path / 'X_val.npy')
-    X_test = np.load(base_path / 'X_test.npy')
+    X_train = np.load(os.path.join(base_path, 'X_train.npy'))
+    X_val =  np.load(os.path.join(base_path, 'X_val.npy'))
+    X_test =  np.load(os.path.join(base_path, 'X_test.npy'))
 
     model = LSTMClassifier(input_dim=X_train.shape[2]).to(device)
-    print(f"[INFO] Seed {seed} - X_train shape: {X_train.shape}")
+    logger.info(f"Seed {seed} - X_train shape: {X_train.shape}")
     model.load_state_dict(torch.load(model_path, map_location=device))
 
     train_preds = predict_exo_model(model, X_train, device)
@@ -51,17 +49,19 @@ def process_seed(seed, device, base_dir, model_dir, output_dir):
     df_meta['meta_label'] = (df_meta['y_true'] == df_meta['y_pred']).astype(int)
 
     # Sauvegarder
-    output_file = output_path / f'meta_dataset_seed_{seed}.csv'
+    output_file = os.path.join(output_path , f'meta_dataset_seed_{seed}.csv')
     df_meta.to_csv(output_file, index=False)
-    print(f"[✓] Fichier sauvegardé : {output_file}")
+    logger.info(f"Fichier sauvegardé : {output_file}")
 
 
-def generate_meta_dataset(seed) :
+def generate_meta_dataset(seed, logger) :
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    base_dir = Path(r'/exogenous_model/dataset/splits')
-    model_dir = Path(r'/exogenous_model/model/checkpoints')
-    output_dir = Path(r'/meta_model/dataset/features_and_target')
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-    process_seed(seed, device, base_dir, model_dir, output_dir)
+    base_dir = os.path.join(project_root,'exogenous_model','dataset','splits')
+    model_dir = os.path.join(project_root,'exogenous_model','model','checkpoints')
+    output_dir = os.path.join(project_root,'meta_model','dataset','features_and_target')
+
+    process_seed(seed, device, base_dir, model_dir, output_dir, logger)

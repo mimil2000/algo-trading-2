@@ -5,7 +5,7 @@ import torch
 import pandas as pd
 import logging
 import os
-from datetime import datetime
+import colorlog
 
 from exogenous_model.dataset.generate_dataset import generate_exogenous_dataset
 from exogenous_model.train.train_model import train_and_save_model
@@ -21,80 +21,100 @@ def set_seed(seed: int):
     random.seed(seed)
 
 
-def setup_logger():
-    log_dir = "logs"
-    os.makedirs(log_dir, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file = os.path.join(log_dir, f"run_multi_seed_{timestamp}.log")
+def setup_logger(log_file="results/run_multi_seed.log"):
+    os.makedirs(os.path.dirname(log_file), exist_ok=True)
+    logger = logging.getLogger("multi_seed_logger")
+    logger.setLevel(logging.INFO)
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        handlers=[
-            logging.FileHandler(log_file),
-            logging.StreamHandler()
-        ]
+    # Formateur texte (pour le fichier)
+    file_formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+    file_handler = logging.FileHandler(log_file, encoding='utf-8')
+    file_handler.setFormatter(file_formatter)
+
+    # Formateur coloré (pour la console)
+    color_formatter = colorlog.ColoredFormatter(
+        '%(log_color)s%(asctime)s [%(levelname)s] %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        log_colors={
+            'DEBUG':    'cyan',
+            'INFO':     'green',
+            'WARNING':  'yellow',
+            'ERROR':    'red',
+            'CRITICAL': 'bold_red',
+        }
     )
-    return logging.getLogger(__name__)
+    console_handler = colorlog.StreamHandler()
+    console_handler.setFormatter(color_formatter)
 
+    # Évite les doublons de handlers
+    if not logger.handlers:
+        logger.addHandler(file_handler)
+        logger.addHandler(console_handler)
 
-def run_pipeline_for_seed(seed: int, logger) -> dict:
-    logger.info(f"🔁 Lancement du run avec seed {seed}")
-    set_seed(seed)
-
-    try:
-        logger.info("📦 Génération du dataset exogène...")
-        generate_exogenous_dataset(seed=seed)
-
-        logger.info("🏋️ Entraînement du modèle principal...")
-        model_path, scaler_path = train_and_save_model(seed=seed)
-
-        logger.info("🧪 Évaluation du modèle principal...")
-        metrics = evaluate_model(model_path, scaler_path)
-        metrics['seed'] = seed
-
-        logger.info("🔧 Génération du dataset méta...")
-        generate_meta_dataset(seed=seed)
-
-        logger.info("🎯 Entraînement et évaluation du méta-modèle...")
-        train_and_test_meta_xgboost(seed=seed)
-
-        logger.info("📈 Analyse du capture ratio...")
-        analyse_capture_ratio(seed=seed)
-
-        logger.info(f"✅ Run terminé pour seed {seed}")
-        return metrics
-
-    except Exception as e:
-        logger.exception(f"❌ Erreur durant le run pour seed {seed} : {e}")
-        return {"seed": seed, "error": str(e)}
+    return logger
 
 
 def run_multi_seed():
+    # Logger
     logger = setup_logger()
 
-    with open("config.json") as f:
+    # Configuration
+    with open('config.json') as f:
         config = json.load(f)
 
+    logger.info(f"Génération de l'exogenous dataset")
+    generate_exogenous_dataset(logger)
+
     seeds = config['general']['seeds']
+
+    logger.info(f"Démarrage de l'exécution multi-seeds : {seeds}")
+
     results = []
 
-    logger.info(f"🚀 Démarrage de l'exécution multi-seeds : {seeds}")
-
     for seed in seeds:
-        metrics = run_pipeline_for_seed(seed, logger)
-        results.append(metrics)
+        logger.info(f"--- Début du run avec seed {seed} ---")
 
+        try:
+            set_seed(seed)
+
+            # Entraînement
+            logger.info("Entraînement du modèle principal")
+            model_path, scaler_path = train_and_save_model(seed=seed, logger=logger)
+
+            # Évaluation
+            logger.info("Évaluation du modèle principal")
+            metrics = evaluate_model(model_path, logger=logger)
+            metrics['seed'] = seed
+            results.append(metrics)
+
+            # Dataset méta
+            logger.info("Génération du dataset méta")
+            generate_meta_dataset(seed=seed, logger=logger)
+
+            # Entraînement du modèle méta
+            logger.info("Entraînement et évaluation du modèle XGBoost méta")
+            train_and_test_meta_xgboost(seed=seed, logger=logger)
+
+            # Analyse stratégie
+            logger.info("Analyse du capture ratio")
+            analyse_capture_ratio(seed=seed)
+
+            logger.info(f"--- Fin du run avec seed {seed} ---\n")
+
+        except Exception as e:
+            logger.exception(f"Erreur lors du traitement du seed {seed}: {e}")
+
+    # Résultats finaux
     df = pd.DataFrame(results)
-
-    logger.info("\n📊 Moyenne des scores sur toutes les seeds :")
+    logger.info("Moyenne des scores sur tous les seeds :")
     logger.info(df.mean(numeric_only=True).round(4))
 
-    logger.info("\n📉 Écart-type des scores :")
+    logger.info("Écart-type des scores :")
     logger.info(df.std(numeric_only=True).round(4))
 
-    df.to_csv("results/results_multi_seed.csv", index=False)
-    logger.info("✅ Résultats enregistrés dans results/results_multi_seed.csv")
+    output_path = "results/results_multi_seed.csv"
+    df.to_csv(output_path, index=False)
+    logger.info(f"Résultats enregistrés dans {output_path}")
 
 
 if __name__ == "__main__":

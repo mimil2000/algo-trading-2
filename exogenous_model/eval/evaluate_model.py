@@ -1,4 +1,5 @@
 # exogenous_model/eval/evaluate_model.py
+import os
 
 import numpy as np
 import torch
@@ -19,13 +20,20 @@ class ForexLSTMDataset(Dataset):
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx]
 
-def evaluate_model(model_path: str, scaler_path: str):
+def evaluate_model(model_path: str, logger):
+
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
     seed = int(model_path.split('_')[-1].split('.')[0])
-    split_prefix = f'dataset/splits/seed_{seed}'
+
+    split_prefix = os.path.join(project_root, 'exogenous_model', 'dataset','splits', f'seed_{seed}')
 
     # Chargement des données
-    X_test = np.load(f'{split_prefix}/X_test.npy')
-    y_test = np.load(f'{split_prefix}/y_test.npy')
+    X_test_path = os.path.join(split_prefix, 'X_test.npy')
+    Y_test_path = os.path.join(split_prefix, 'Y_test.npy')
+
+    X_test = np.load(X_test_path)
+    y_test = np.load(Y_test_path)
 
     test_loader = DataLoader(ForexLSTMDataset(X_test, y_test), batch_size=BATCH_SIZE, shuffle=False)
 
@@ -49,11 +57,13 @@ def evaluate_model(model_path: str, scaler_path: str):
     recall = recall_score(y_true, y_pred, average='macro')
     f1 = f1_score(y_true, y_pred, average='macro')
 
-    np.save(f"../model/{split_prefix}/y_pred_seed_{seed}.npy", y_pred)
-    np.save(f"../model/{split_prefix}/y_true_seed_{seed}.npy", y_true)
+    y_pred_path = os.path.join(split_prefix, f'y_pred_seed_{seed}.npy')
+    y_true_path = os.path.join(split_prefix, f'y_true_seed_{seed}.npy')
 
+    np.save(y_pred_path, y_pred)
+    np.save(y_true_path, y_true)
 
-    print(f"📊 Seed {seed} — Accuracy: {acc:.4f}, Precision: {precision:.4f}, Recall: {recall:.4f}, F1: {f1:.4f}")
+    logger.info(f"Seed {seed} — Accuracy: {acc:.4f}, Precision: {precision:.4f}, Recall: {recall:.4f}, F1: {f1:.4f}")
 
     return {
         'accuracy': acc,

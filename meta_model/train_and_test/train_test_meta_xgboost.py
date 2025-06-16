@@ -8,7 +8,7 @@ from sklearn.metrics import classification_report, confusion_matrix, roc_auc_sco
 import joblib
 
 
-def train_and_test_meta_xgboost(seed):
+def train_and_test_meta_xgboost(seed, logger):
 
     # === Chargement du dataset méta ===
     df = pd.read_csv(f"C:/Donnees/ECL/11-S9/Deep Learning/algo-trading-2/meta_model/dataset/features_and_target/meta_dataset_seed_{seed}.csv")
@@ -42,23 +42,23 @@ def train_and_test_meta_xgboost(seed):
         random_state=42
     )
 
-    print("[•] Entraînement du méta-modèle...")
+    logger.info("[•] Entraînement du méta-modèle...")
     model.fit(X_train, y_train)
 
     # === Évaluation ===
     y_pred = model.predict(X_test)
     y_prob = model.predict_proba(X_test)[:, 1]
 
-    print("\n[✓] Évaluation sur le set de test :")
-    print(classification_report(y_test, y_pred))
-    print("ROC AUC Score :", roc_auc_score(y_test, y_prob))
-    print("Confusion Matrix :\n", confusion_matrix(y_test, y_pred))
+    logger.info("\nÉvaluation sur le set de test :")
+    logger.info(classification_report(y_test, y_pred))
+    logger.info("ROC AUC Score :", roc_auc_score(y_test, y_prob))
+    logger.info("Confusion Matrix :\n", confusion_matrix(y_test, y_pred))
 
     # === Sauvegarde du modèle ===
     joblib.dump(model, "xgboost_meta_model.joblib")
-    print("\n[✓] Modèle sauvegardé : xgboost_meta_model.joblib")
+    logger.info("\n Modèle sauvegardé : xgboost_meta_model.joblib")
 
     np.save(f"results/seed_{seed}/xgboost_meta_model_probs.npy", y_prob)
     np.save(f"results/seed_{seed}/xgboost_meta_model_y_true.npy", y_true_test)
     np.save(f"results/seed_{seed}/xgboost_meta_model_y_pred.npy", y_pred_test)
-    print(f"\n[✓] Résultas sauvegardés dans : results/seed_{seed}/xgboost_meta_model_probs.npy")
+    logger.info(f"\n Résultas sauvegardés dans : results/seed_{seed}/xgboost_meta_model_probs.npy")
