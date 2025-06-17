@@ -1,3 +1,7 @@
+import os
+import numpy as np
+
+import matplotlib.pyplot as plt
 
 def compute_capture_ratio(y_true, y_pred, y_proba, mode='weighted', threshold=0.6, gain=20, loss=7):
     """
@@ -58,9 +62,13 @@ def compute_capture_ratio(y_true, y_pred, y_proba, mode='weighted', threshold=0.
 
 def analyse_capture_ratio(seed) :
 
-    y_proba_path = r'../meta_model/train_and_test\xgboost_meta_model_probs.npy'
-    y_pred_path = r'../meta_model/train_and_test\xgboost_meta_model_y_pred.npy'
-    y_true_path = r'../meta_model/train_and_test\xgboost_meta_model_y_true.npy'
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
+    results_dir = os.path.join(project_root, 'meta_model','results', f'seed_{seed}')
+
+    y_proba_path = os.path.join(results_dir, 'xgboost_meta_model_probs.npy')
+    y_pred_path = os.path.join(results_dir, 'xgboost_meta_model_y_pred.npy')
+    y_true_path = os.path.join(results_dir, 'xgboost_meta_model_y_true.npy')
 
     y_pred = np.load(y_pred_path)
     y_true = np.load(y_true_path)
@@ -106,7 +114,7 @@ def analyse_capture_ratio(seed) :
     ax2.set_ylabel("% de trades retenus", color='green')
     ax2.tick_params(axis='y', labelcolor='green')
 
-    plt.title("🎯 Capture Ratio vs Seuil de Confiance avec Couverture")
+    plt.title("Capture Ratio vs Seuil de Confiance avec Couverture")
     plt.xticks(thresholds)
     plt.tight_layout()
     plt.show()

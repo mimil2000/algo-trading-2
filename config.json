@@ -9,6 +9,14 @@
     "learning_rate": 0.001,
     "patience": 10
   },
+
+  "meta_model": {
+    "batch_size": 64,
+    "epochs": 20,
+    "learning_rate": 0.001,
+    "patience": 10
+  },
+
   "features": {
     "use_sma": true,
     "use_ema": true,
@@ -24,6 +32,7 @@
     "use_vwap": true,
     "use_pvt": true
   },
+
   "dataset": {
     "window": 8,
     "take_profit_pips": 20,

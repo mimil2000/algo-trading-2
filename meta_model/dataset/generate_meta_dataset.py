@@ -1,5 +1,4 @@
 """generate_meta_datasets.py"""
-import json
 import os
 
 import torch
@@ -49,9 +48,17 @@ def process_seed(seed, device, base_dir, model_dir, output_path, logger):
     df_meta['meta_label'] = (df_meta['y_true'] == df_meta['y_pred']).astype(int)
 
     # Sauvegarder
-    output_file = os.path.join(output_path , f'meta_dataset_seed_{seed}.csv')
-    df_meta.to_csv(output_file, index=False)
-    logger.info(f"Fichier sauvegardé : {output_file}")
+    output_file_path = os.path.join(output_path , f'meta_dataset_seed_{seed}.csv')
+    os.makedirs(os.path.dirname(output_file_path), exist_ok=True)
+
+    try:
+        df_meta.to_csv(output_file_path, index=False)
+        logger.info(f"Dataset sauvegardé sous {output_file_path}")
+    except Exception as e:
+        logger.error(f"Failed to save the dataset: {e}")
+        raise
+
+    logger.info(f"Fichier sauvegardé : {output_file_path}")
 
 
 def generate_meta_dataset(seed, logger) :

@@ -106,7 +106,6 @@ def generate_label_with_dd(df, tp_pips, window, max_dd_pips):
 
 def generate_exogenous_dataset(logger):
 
-
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     config_path = os.path.join(project_root, 'config.json')
 
@@ -230,8 +229,14 @@ def generate_exogenous_dataset(logger):
 
     # === EXPORT CSV === #
     csv_output_path = os.path.join(project_root, config['dataset']["output_dataset_path"])
-    df_final.to_csv(csv_output_path, index=False)
-    logger.info(f"Dataset sauvegardé sous {csv_output_path}")
+    os.makedirs(os.path.dirname(csv_output_path), exist_ok=True)
+
+    try:
+        df_final.to_csv(csv_output_path, index=False, sep=',')
+        logger.info(f"Dataset sauvegardé sous {csv_output_path}")
+    except Exception as e:
+        logger.error(f"Failed to save the dataset: {e}")
+        raise
 
     # === CONSTRUCTION DES SÉQUENCES === #
     sequence_data = []

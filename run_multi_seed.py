@@ -21,37 +21,42 @@ def set_seed(seed: int):
     random.seed(seed)
 
 
-def setup_logger(log_file="results/run_multi_seed.log"):
+def setup_logger(log_file="log/run_multi_seed.log"):
+
     os.makedirs(os.path.dirname(log_file), exist_ok=True)
     logger = logging.getLogger("multi_seed_logger")
-    logger.setLevel(logging.INFO)
+    # Set the logger level to DEBUG to capture debug messages
+    logger.setLevel(logging.DEBUG)
 
-    # Formateur texte (pour le fichier)
+    # Text formatter (for the file)
     file_formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
     file_handler = logging.FileHandler(log_file, encoding='utf-8')
     file_handler.setFormatter(file_formatter)
+    file_handler.setLevel(logging.DEBUG)  # Ensure the file handler captures DEBUG level messages
 
-    # Formateur coloré (pour la console)
+    # Colored formatter (for the console)
     color_formatter = colorlog.ColoredFormatter(
         '%(log_color)s%(asctime)s [%(levelname)s] %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
         log_colors={
-            'DEBUG':    'cyan',
-            'INFO':     'green',
-            'WARNING':  'yellow',
-            'ERROR':    'red',
+            'DEBUG': 'cyan',
+            'INFO': 'yellow',
+            'WARNING': 'green',
+            'ERROR': 'red',
             'CRITICAL': 'bold_red',
         }
     )
     console_handler = colorlog.StreamHandler()
     console_handler.setFormatter(color_formatter)
+    console_handler.setLevel(logging.DEBUG)  # Ensure the console handler captures DEBUG level messages
 
-    # Évite les doublons de handlers
+    # Avoid duplicate handlers
     if not logger.handlers:
         logger.addHandler(file_handler)
         logger.addHandler(console_handler)
 
     return logger
+
 
 
 def run_multi_seed():
@@ -112,7 +117,7 @@ def run_multi_seed():
     logger.info("Écart-type des scores :")
     logger.info(df.std(numeric_only=True).round(4))
 
-    output_path = "results/results_multi_seed.csv"
+    output_path = "meta_model/results/results_multi_seed.csv"
     df.to_csv(output_path, index=False)
     logger.info(f"Résultats enregistrés dans {output_path}")
 
