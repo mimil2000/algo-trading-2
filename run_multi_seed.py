@@ -6,6 +6,7 @@ import pandas as pd
 import logging
 import os
 import colorlog
+from datetime import datetime
 
 from exogenous_model.dataset.generate_dataset import generate_exogenous_dataset
 from exogenous_model.train.train_model import train_and_save_model
@@ -21,20 +22,25 @@ def set_seed(seed: int):
     random.seed(seed)
 
 
-def setup_logger(log_file="log/run_multi_seed.log"):
+def setup_logger():
+    # Créer un répertoire pour les logs s'il n'existe pas
+    log_dir = "log"
+    os.makedirs(log_dir, exist_ok=True)
 
-    os.makedirs(os.path.dirname(log_file), exist_ok=True)
+    # Ajouter un horodatage au nom du fichier log
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = os.path.join(log_dir, f"run_multi_seed_{timestamp}.log")
+
     logger = logging.getLogger("multi_seed_logger")
-    # Set the logger level to DEBUG to capture debug messages
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)  # Capturer les messages au niveau DEBUG
 
-    # Text formatter (for the file)
+    # Text formatter (pour le fichier)
     file_formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
     file_handler = logging.FileHandler(log_file, encoding='utf-8')
     file_handler.setFormatter(file_formatter)
-    file_handler.setLevel(logging.DEBUG)  # Ensure the file handler captures DEBUG level messages
+    file_handler.setLevel(logging.DEBUG)  # Capturer les messages DEBUG dans le fichier
 
-    # Colored formatter (for the console)
+    # Colored formatter (pour la console)
     color_formatter = colorlog.ColoredFormatter(
         '%(log_color)s%(asctime)s [%(levelname)s] %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
@@ -48,14 +54,15 @@ def setup_logger(log_file="log/run_multi_seed.log"):
     )
     console_handler = colorlog.StreamHandler()
     console_handler.setFormatter(color_formatter)
-    console_handler.setLevel(logging.DEBUG)  # Ensure the console handler captures DEBUG level messages
+    console_handler.setLevel(logging.DEBUG)  # Capturer les messages DEBUG dans la console
 
-    # Avoid duplicate handlers
+    # Éviter les handlers en doublon
     if not logger.handlers:
         logger.addHandler(file_handler)
         logger.addHandler(console_handler)
 
     return logger
+
 
 
 

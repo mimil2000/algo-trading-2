@@ -12,7 +12,7 @@
 
   "meta_model": {
     "batch_size": 64,
-    "epochs": 20,
+    "epochs": 100,
     "learning_rate": 0.001,
     "patience": 10
   },
@@ -37,7 +37,7 @@
     "window": 8,
     "take_profit_pips": 20,
     "max_dd_pips": 7,
-    "sequence_length": 20,
+    "sequence_length": 200,
     "output_dataset_path": "exogenous_model\\dataset\\features_and_target\\features_and_target.csv",
     "output_Xy_npz_path": "exogenous_model\\dataset\\features_and_target\\sequential_dataset.npz"
   }

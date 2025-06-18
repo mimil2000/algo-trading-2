@@ -8,6 +8,7 @@ dependencies = [
     "colorlog>=6.9.0",
     "joblib>=1.5.1",
     "kagglehub>=0.3.12",
+    "matplotlib>=3.10.3",
     "numpy>=2.2.6",
     "pandas-datareader>=0.10.0",
     "scikit-learn>=1.7.0",
