@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import kagglehub
 import json
+import matplotlib.pyplot as plt
 
 from ta.momentum import (
     RSIIndicator, StochasticOscillator, WilliamsRIndicator, ROCIndicator, KAMAIndicator
@@ -49,26 +50,8 @@ def remove_highly_correlated_features(df, threshold=0.95, logger=None):
     return df.drop(columns=to_drop), to_drop
 
 
-def clean_dataset_robust(df: pd.DataFrame) -> pd.DataFrame:
-    df_cleaned = df.copy()
-
-    # Retirer les lignes avec des valeurs extrêmes ou infinies
-    df_cleaned.replace([np.inf, -np.inf], np.nan, inplace=True)
-
-    # Filtrer les colonnes numériques pour le nettoyage
-    numeric_cols = df_cleaned.select_dtypes(include=[np.number]).columns
-
-    for col in numeric_cols:
-        q1 = df_cleaned[col].quantile(0.01)
-        q99 = df_cleaned[col].quantile(0.99)
-        df_cleaned[col] = df_cleaned[col].clip(lower=q1, upper=q99)
-
-    df_cleaned.dropna(inplace=True)
-    df_cleaned.reset_index(drop=True, inplace=True)
-    return df_cleaned
-
-
 def generate_label_with_dd(df, tp_pips, window, max_dd_pips):
+
     labels = []
     tp_threshold = tp_pips * 0.0001
     dd_threshold = max_dd_pips * 0.0001
@@ -102,7 +85,87 @@ def generate_label_with_dd(df, tp_pips, window, max_dd_pips):
                 labels.append(0)  # HOLD
 
     labels += [0] * window
+
     return labels
+
+
+def generate_label_with_triple_barrier(df, tp_pips, sl_pips, window):
+    """
+    Génère des labels basés sur la méthode de triple barrière.
+
+    Arguments :
+    - df : DataFrame contenant au moins une colonne 'close' avec les prix de clôture.
+    - tp_pips : Niveau de take-profit (en pips).
+    - sl_pips : Niveau de stop-loss (en pips).
+    - window : Fenêtre temporelle maximale pour évaluer les barrières.
+
+    Renvoie :
+    - Une liste de labels : 1 (BUY), 2 (SELL), 0 (HOLD).
+    """
+    labels = []
+    tp_threshold = tp_pips * 0.0001  # Convertir les pips pour take-profit
+    sl_threshold = sl_pips * 0.0001  # Convertir les pips pour stop-loss
+
+    close_prices = df['close'].values
+
+    for i in range(len(df) - window):
+        current_price = close_prices[i]
+        future_prices = close_prices[i + 1:i + 1 + window]
+
+        # On initialise les barrières
+        upper_barrier = current_price + tp_threshold
+        lower_barrier = current_price - sl_threshold
+
+        # On parcourt les prix futurs dans la fenêtre
+        for t, price in enumerate(future_prices):
+            if price >= upper_barrier:  # Atteinte de la barrière haute (BUY)
+                labels.append(1)
+                break
+            elif price <= lower_barrier:  # Atteinte de la barrière basse (SELL)
+                labels.append(2)
+                break
+        else:  # Aucune barrière atteinte dans la fenêtre (HOLD)
+            labels.append(0)
+
+    # Ajouter 0 pour les dernières lignes où il est impossible d'utiliser la fenêtre
+    labels += [0] * window
+
+    return labels
+
+
+def plot_prices_with_labels(df, labels):
+    """
+    Trace le graphique des prix avec les labels BUY, SELL et HOLD.
+
+    Arguments :
+    - df : DataFrame contenant les prix (doit inclure une colonne 'close').
+    - labels : Liste des labels générés (1: BUY, 2: SELL, 0: HOLD).
+    """
+    # Associer les labels et les prix
+    price = df['close']
+    x = range(len(df))  # Index pour l'axe x
+
+    # Localiser les points spécifiques en fonction des labels
+    buy_points = [i for i, label in enumerate(labels) if label == 1]
+    sell_points = [i for i, label in enumerate(labels) if label == 2]
+    hold_points = [i for i, label in enumerate(labels) if label == 0]
+
+    # Tracer les prix
+    plt.figure(figsize=(12, 6))
+    plt.plot(x, price, label='Price', color='blue', alpha=0.75)
+
+    # Tracer les labels BUY, SELL, et HOLD
+    plt.scatter(buy_points, price.iloc[buy_points], color='green', label='BUY', marker='^', s=100)
+    plt.scatter(sell_points, price.iloc[sell_points], color='red', label='SELL', marker='v', s=100)
+    plt.scatter(hold_points, price.iloc[hold_points], color='gray', label='HOLD', marker='o', s=50, alpha=0.4)
+
+    # Ajouter des légendes et des titres
+    plt.title('Prix avec Labels de Trading', fontsize=14)
+    plt.xlabel('Index', fontsize=12)
+    plt.ylabel('Prix', fontsize=12)
+    plt.legend(loc='best')
+    plt.grid(alpha=0.3)
+    plt.show()
 
 def generate_exogenous_dataset(logger):
 
@@ -115,7 +178,7 @@ def generate_exogenous_dataset(logger):
     TAKE_PROFIT_PIPS = config['dataset']["take_profit_pips"]
     MAX_DD_PIPS = config['dataset']["max_dd_pips"]
     PREDICTION_WINDOW = config['dataset']["window"]
-    SEQUENCE_LENGTH = config['dataset']["sequence_length"]
+    SEQUENCE_LENGTH = config['model']["sequence_length"]
 
     # === TÉLÉCHARGEMENT DES DONNÉES === #
     logger.info("Téléchargement des données...")
@@ -212,7 +275,7 @@ def generate_exogenous_dataset(logger):
     logger.info("Sélection des colonnes...")
 
     features = [
-        'log_return',
+        'close','log_return',
         'rsi', 'rsi_dist_oversold', 'rsi_dist_overbought', 'rsi_signal',
         'sma_50', 'sma_200', 'ema_20', 'ema_100',
         'above_sma_50', 'above_sma_200', 'sma_50_vs_200',

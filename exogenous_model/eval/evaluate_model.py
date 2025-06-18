@@ -63,7 +63,7 @@ def evaluate_model(model_path: str, logger):
     np.save(y_pred_path, y_pred)
     np.save(y_true_path, y_true)
 
-    logger.info(f"Seed {seed} — Accuracy: {acc:.4f}, Precision: {precision:.4f}, Recall: {recall:.4f}, F1: {f1:.4f}")
+    logger.info(f"Accuracy: {acc:.4f}, Precision: {precision:.4f}, Recall: {recall:.4f}, F1: {f1:.4f}")
 
     return {
         'accuracy': acc,

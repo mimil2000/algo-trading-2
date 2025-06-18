@@ -69,3 +69,4 @@ def train_and_test_meta_xgboost(seed, logger):
     np.save(os.path.join(results_dir, 'xgboost_meta_model_probs.npy'), y_prob)
     np.save(os.path.join(results_dir, 'xgboost_meta_model_y_true.npy'), y_true_test)
     np.save(os.path.join(results_dir, 'xgboost_meta_model_y_pred.npy'), y_pred_test)
+    np.save(os.path.join(results_dir, 'xgboost_meta_model_X_test.npy'), X_test)

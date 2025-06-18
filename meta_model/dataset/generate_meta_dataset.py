@@ -10,7 +10,7 @@ from exogenous_model.prediction.prediction import predict_exo_model
 
 def process_seed(seed, device, base_dir, model_dir, output_path, logger):
 
-    logger.info(f" Traitement du seed {seed}...")
+    logger.info(f"Traitement du seed {seed}...")
 
     base_path = os.path.join(base_dir ,f'seed_{seed}')
     model_path =  os.path.join(model_dir , f'model_seed_{seed}.pt')
@@ -24,7 +24,7 @@ def process_seed(seed, device, base_dir, model_dir, output_path, logger):
     X_test =  np.load(os.path.join(base_path, 'X_test.npy'))
 
     model = LSTMClassifier(input_dim=X_train.shape[2]).to(device)
-    logger.info(f"Seed {seed} - X_train shape: {X_train.shape}")
+    logger.info(f"X_train shape: {X_train.shape}")
     model.load_state_dict(torch.load(model_path, map_location=device))
 
     train_preds = predict_exo_model(model, X_train, device)

@@ -118,3 +118,65 @@ def analyse_capture_ratio(seed) :
     plt.xticks(thresholds)
     plt.tight_layout()
     plt.show()
+
+
+def plot_price_and_positions(prices, y_pred, y_proba, threshold=0.6):
+    """
+    Trace le prix et les moments d'entrée en position en fonction des prédictions.
+
+    Args:
+        prices (array): Série des prix (par exemple, prix contenu dans X_test).
+        y_pred (array): Prédictions (1=BUY, 2=SELL, 0=HOLD).
+        y_proba (array): Probabilités associées.
+        threshold (float): Seuil au-delà duquel une position est considérée valide.
+    """
+    # Filtrer en fonction du seuil
+    valid_positions = y_proba >= threshold
+
+    # Extraction des moments où l'on entre en position (BUY, SELL)
+    buy_signals = (y_pred == 1) & valid_positions
+    sell_signals = (y_pred == 2) & valid_positions
+
+    # Tracer le prix
+    plt.figure(figsize=(14, 7))
+    plt.plot(prices, label="Prix", color="black")
+
+    # Ajouter les points d'entrée en position Buy
+    plt.scatter(np.where(buy_signals)[0], prices[buy_signals], color='green', marker='^', label='Buy Signal', s=100)
+
+    # Ajouter les points d'entrée en position Sell
+    plt.scatter(np.where(sell_signals)[0], prices[sell_signals], color='red', marker='v', label='Sell Signal', s=100)
+
+    # Légendes et labels
+    plt.title("Prix et Entrée en Position")
+    plt.xlabel("Temps")
+    plt.ylabel("Prix")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
+def analyse_positions_and_prices(seed):
+    """
+    Analyse les positions selon les prédictions et trace les signaux Buy/Sell sur le prix.
+
+    Args:
+        seed (int): Seed pour retrouver les données correspondantes (X_test, y_pred, etc.).
+    """
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    results_dir = os.path.join(project_root, 'meta_model', 'results', f'seed_{seed}')
+
+    y_proba_path = os.path.join(results_dir, 'xgboost_meta_model_probs.npy')
+    y_pred_path = os.path.join(results_dir, 'xgboost_meta_model_y_pred.npy')
+    prices_path = os.path.join(results_dir, 'xgboost_meta_model_X_test.npy')
+
+    # Charger les données
+    y_proba = np.load(y_proba_path)[0:100]
+    y_pred = np.load(y_pred_path)[0:100]
+    X_test = np.load(prices_path)[0:100]
+    prices = X_test[:,0][0:100]
+
+    # Visualisation des signaux et du prix
+    plot_price_and_positions(prices, y_pred, y_proba, threshold=0.6)
+
+analyse_positions_and_prices(42)
