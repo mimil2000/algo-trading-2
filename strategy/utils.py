@@ -178,5 +178,3 @@ def analyse_positions_and_prices(seed):
 
     # Visualisation des signaux et du prix
     plot_price_and_positions(prices, y_pred, y_proba, threshold=0.6)
-
-analyse_positions_and_prices(42)

@@ -79,7 +79,7 @@ def run_multi_seed():
 
     seeds = config['general']['seeds']
 
-    logger.info(f"Démarrage de l'exécution multi-seeds : {seeds}")
+    logger.info(f"Démarrage de l'exécution multi-seeds : {seeds}\n")
 
     results = []
 

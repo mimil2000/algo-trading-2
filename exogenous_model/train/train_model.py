@@ -144,10 +144,13 @@ def train_and_save_model(seed: int, logger ):
                 val_loss += criterion(model(X_val_batch), y_val_batch).item()
         val_loss /= len(val_loader)
 
-        logger.debug(f"Epoch {epoch + 1}/{EPOCHS} - "
-              f"Train Loss: {train_loss:.4f} - "
-              f"Val Loss: {val_loss:.4f} - "
-              f"Best Val Loss: {best_val_loss:.4f}")
+        if epoch % 5 == 0 or epoch == EPOCHS - 1:
+            logger.debug(
+                f"[Epoch {epoch + 1}/{EPOCHS}] "
+                f"Train Loss: {train_loss:.4f} | "
+                f"Val Loss: {val_loss:.4f} | "
+                f"Best Val Loss: {best_val_loss:.4f} | "
+            )
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
