@@ -105,7 +105,10 @@ def run_multi_seed():
 
             # Entraînement du modèle méta
             logger.info("Entraînement et évaluation du modèle XGBoost méta")
-            train_and_test_meta_xgboost(seed=seed, logger=logger)
+            meta_metrics = train_and_test_meta_xgboost(seed=seed, logger=logger)
+
+            # Combine les résultats LSTM + XGBoost
+            metrics.update(meta_metrics)
 
             # Analyse stratégie
             logger.info("Analyse du capture ratio")
