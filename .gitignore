@@ -12,13 +12,6 @@ venv/
 .idea/
 .vscode/
 
-# Logs, résultats, checkpoints
-log/
-*.log
-*.checkpoint
-*.ckpt
-*.pt
-*.pkl
 
 # Fichiers UV
 uv.lock
