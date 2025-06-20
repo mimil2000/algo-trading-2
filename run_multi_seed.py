@@ -6,6 +6,7 @@ import pandas as pd
 import logging
 import os
 import colorlog
+from datetime import datetime
 
 from exogenous_model.dataset.generate_dataset import generate_exogenous_dataset
 from exogenous_model.train.train_model import train_and_save_model
@@ -21,37 +22,48 @@ def set_seed(seed: int):
     random.seed(seed)
 
 
-def setup_logger(log_file="results/run_multi_seed.log"):
-    os.makedirs(os.path.dirname(log_file), exist_ok=True)
-    logger = logging.getLogger("multi_seed_logger")
-    logger.setLevel(logging.INFO)
+def setup_logger():
+    # Créer un répertoire pour les logs s'il n'existe pas
+    log_dir = "log"
+    os.makedirs(log_dir, exist_ok=True)
 
-    # Formateur texte (pour le fichier)
+    # Ajouter un horodatage au nom du fichier log
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = os.path.join(log_dir, f"run_multi_seed_{timestamp}.log")
+
+    logger = logging.getLogger("multi_seed_logger")
+    logger.setLevel(logging.DEBUG)  # Capturer les messages au niveau DEBUG
+
+    # Text formatter (pour le fichier)
     file_formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
     file_handler = logging.FileHandler(log_file, encoding='utf-8')
     file_handler.setFormatter(file_formatter)
+    file_handler.setLevel(logging.DEBUG)  # Capturer les messages DEBUG dans le fichier
 
-    # Formateur coloré (pour la console)
+    # Colored formatter (pour la console)
     color_formatter = colorlog.ColoredFormatter(
         '%(log_color)s%(asctime)s [%(levelname)s] %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
         log_colors={
-            'DEBUG':    'cyan',
-            'INFO':     'green',
-            'WARNING':  'yellow',
-            'ERROR':    'red',
+            'DEBUG': 'cyan',
+            'INFO': 'yellow',
+            'WARNING': 'green',
+            'ERROR': 'red',
             'CRITICAL': 'bold_red',
         }
     )
     console_handler = colorlog.StreamHandler()
     console_handler.setFormatter(color_formatter)
+    console_handler.setLevel(logging.DEBUG)  # Capturer les messages DEBUG dans la console
 
-    # Évite les doublons de handlers
+    # Éviter les handlers en doublon
     if not logger.handlers:
         logger.addHandler(file_handler)
         logger.addHandler(console_handler)
 
     return logger
+
+
 
 
 def run_multi_seed():
@@ -67,7 +79,7 @@ def run_multi_seed():
 
     seeds = config['general']['seeds']
 
-    logger.info(f"Démarrage de l'exécution multi-seeds : {seeds}")
+    logger.info(f"Démarrage de l'exécution multi-seeds : {seeds}\n")
 
     results = []
 
@@ -93,7 +105,10 @@ def run_multi_seed():
 
             # Entraînement du modèle méta
             logger.info("Entraînement et évaluation du modèle XGBoost méta")
-            train_and_test_meta_xgboost(seed=seed, logger=logger)
+            meta_metrics = train_and_test_meta_xgboost(seed=seed, logger=logger)
+
+            # Combine les résultats LSTM + XGBoost
+            metrics.update(meta_metrics)
 
             # Analyse stratégie
             logger.info("Analyse du capture ratio")
@@ -112,7 +127,7 @@ def run_multi_seed():
     logger.info("Écart-type des scores :")
     logger.info(df.std(numeric_only=True).round(4))
 
-    output_path = "results/results_multi_seed.csv"
+    output_path = "meta_model/results/results_multi_seed.csv"
     df.to_csv(output_path, index=False)
     logger.info(f"Résultats enregistrés dans {output_path}")
 

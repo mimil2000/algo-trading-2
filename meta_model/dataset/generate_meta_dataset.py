@@ -1,5 +1,4 @@
 """generate_meta_datasets.py"""
-import json
 import os
 
 import torch
@@ -10,8 +9,6 @@ from exogenous_model.prediction.prediction import predict_exo_model
 
 
 def process_seed(seed, device, base_dir, model_dir, output_path, logger):
-
-    logger.info(f" Traitement du seed {seed}...")
 
     base_path = os.path.join(base_dir ,f'seed_{seed}')
     model_path =  os.path.join(model_dir , f'model_seed_{seed}.pt')
@@ -25,9 +22,9 @@ def process_seed(seed, device, base_dir, model_dir, output_path, logger):
     X_test =  np.load(os.path.join(base_path, 'X_test.npy'))
 
     model = LSTMClassifier(input_dim=X_train.shape[2]).to(device)
-    logger.info(f"Seed {seed} - X_train shape: {X_train.shape}")
     model.load_state_dict(torch.load(model_path, map_location=device))
 
+    logger.info("Prédiction du modèle principal ...")
     train_preds = predict_exo_model(model, X_train, device)
     val_preds = predict_exo_model(model, X_val, device)
     test_preds = predict_exo_model(model, X_test, device)
@@ -49,9 +46,17 @@ def process_seed(seed, device, base_dir, model_dir, output_path, logger):
     df_meta['meta_label'] = (df_meta['y_true'] == df_meta['y_pred']).astype(int)
 
     # Sauvegarder
-    output_file = os.path.join(output_path , f'meta_dataset_seed_{seed}.csv')
-    df_meta.to_csv(output_file, index=False)
-    logger.info(f"Fichier sauvegardé : {output_file}")
+    output_file_path = os.path.join(output_path , f'meta_dataset_seed_{seed}.csv')
+    os.makedirs(os.path.dirname(output_file_path), exist_ok=True)
+
+    logger.info("Méta labels créés")
+
+    try:
+        df_meta.to_csv(output_file_path, index=False)
+        logger.info(f"Dataset sauvegardé sous {output_file_path}")
+    except Exception as e:
+        logger.error(f"Failed to save the dataset: {e}")
+        raise
 
 
 def generate_meta_dataset(seed, logger) :
